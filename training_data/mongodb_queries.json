@@ -1,0 +1,104 @@
+{
+  "queries": [
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"_id": "123"}},
+      "label": 0,
+      "description": "Good - Query by indexed _id field"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"email": "user@example.com"}},
+      "label": 0,
+      "description": "Good - Simple equality on single field"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"age": {"$gt": 18}, "status": "active"}, "limit": 100},
+      "label": 0,
+      "description": "Good - Has limit, reasonable filters"
+    },
+    {
+      "query": {"collection": "products", "operation": "find", "filter": {"category": "electronics"}, "projection": {"name": 1, "price": 1}},
+      "label": 0,
+      "description": "Good - Has projection, specific fields only"
+    },
+    {
+      "query": {"collection": "orders", "operation": "find", "filter": {"user_id": "abc123", "status": "pending"}, "sort": {"created_at": -1}, "limit": 20},
+      "label": 0,
+      "description": "Good - Has limit, sort, reasonable filter"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {}},
+      "label": 1,
+      "description": "Bad - No filter, will scan entire collection"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"name": {"$regex": "^John"}}},
+      "label": 1,
+      "description": "Bad - Using regex without index"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"age": {"$ne": 30}}},
+      "label": 1,
+      "description": "Bad - Using $ne operator (cannot use index efficiently)"
+    },
+    {
+      "query": {"collection": "products", "operation": "find", "filter": {"price": {"$nin": [10, 20, 30]}}},
+      "label": 1,
+      "description": "Bad - Using $nin operator"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"$or": [{"age": {"$lt": 18}}, {"age": {"$gt": 65}}]}},
+      "label": 1,
+      "description": "Bad - Using $or without proper indexes"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"name": {"$regex": ".*test.*"}, "age": {"$ne": 25}}},
+      "label": 1,
+      "description": "Bad - Multiple inefficient operators"
+    },
+    {
+      "query": {"collection": "logs", "operation": "find", "filter": {"timestamp": {"$gte": "2024-01-01"}}},
+      "label": 1,
+      "description": "Bad - No limit on potentially large result set"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"country": "US"}, "limit": 50},
+      "label": 0,
+      "description": "Good - Has limit, simple filter"
+    },
+    {
+      "query": {"collection": "products", "operation": "find", "filter": {"$text": {"$search": "laptop"}}},
+      "label": 0,
+      "description": "Good - Using text search (requires text index but designed for it)"
+    },
+    {
+      "query": {"collection": "orders", "operation": "find", "filter": {"status": {"$in": ["pending", "processing"]}}},
+      "label": 0,
+      "description": "Good - Using $in with small list"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"created_at": {"$gte": "2024-01-01"}, "age": {"$ne": 18}}},
+      "label": 1,
+      "description": "Bad - Mix of range and $ne"
+    },
+    {
+      "query": {"collection": "products", "operation": "find", "filter": {"name": {"$regex": ".*"}}},
+      "label": 1,
+      "description": "Bad - Regex matching everything"
+    },
+    {
+      "query": {"collection": "sessions", "operation": "find", "filter": {"user_id": "user123"}, "sort": {"last_active": -1}, "limit": 1},
+      "label": 0,
+      "description": "Good - Get most recent session with limit"
+    },
+    {
+      "query": {"collection": "analytics", "operation": "find", "filter": {"event_type": "click", "date": {"$gte": "2024-01-01"}}, "projection": {"user_id": 1, "timestamp": 1}},
+      "label": 0,
+      "description": "Good - Has projection and reasonable filter"
+    },
+    {
+      "query": {"collection": "users", "operation": "find", "filter": {"email": {"$regex": "@gmail.com$"}, "status": {"$ne": "inactive"}}},
+      "label": 1,
+      "description": "Bad - Regex and $ne together"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "queries": [
+    {
+      "query": "SELECT user_id, name, email FROM users WHERE user_id = '12345'",
+      "label": 0,
+      "description": "Good - Query by partition key with specific columns"
+    },
+    {
+      "query": "SELECT * FROM orders WHERE order_id = 'ORD123' AND item_id = 1",
+      "label": 0,
+      "description": "Good - Query by partition and clustering key"
+    },
+    {
+      "query": "SELECT count(*) FROM sessions WHERE user_id = 'user123'",
+      "label": 0,
+      "description": "Good - Aggregate with partition key"
+    },
+    {
+      "query": "SELECT user_id, email FROM users WHERE user_id IN ('user1', 'user2', 'user3')",
+      "label": 0,
+      "description": "Good - IN clause with few values on partition key"
+    },
+    {
+      "query": "SELECT * FROM products WHERE category = 'electronics' AND product_id = 100",
+      "label": 0,
+      "description": "Good - Partition and clustering key specified"
+    },
+    {
+      "query": "SELECT * FROM users WHERE age > 25 ALLOW FILTERING",
+      "label": 1,
+      "description": "Bad - ALLOW FILTERING causes full table scan"
+    },
+    {
+      "query": "SELECT * FROM users",
+      "label": 1,
+      "description": "Bad - No WHERE clause, full table scan"
+    },
+    {
+      "query": "SELECT * FROM orders WHERE status = 'pending' ALLOW FILTERING",
+      "label": 1,
+      "description": "Bad - SELECT * with ALLOW FILTERING"
+    },
+    {
+      "query": "SELECT user_id FROM users WHERE email = 'test@example.com' ALLOW FILTERING",
+      "label": 1,
+      "description": "Bad - Querying non-partition key with ALLOW FILTERING"
+    },
+    {
+      "query": "SELECT * FROM products WHERE product_id IN (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)",
+      "label": 1,
+      "description": "Bad - Large IN clause (>10 values)"
+    },
+    {
+      "query": "SELECT name, price FROM products WHERE category = 'electronics'",
+      "label": 1,
+      "description": "Bad - Querying without partition key"
+    },
+    {
+      "query": "SELECT * FROM logs WHERE timestamp > '2024-01-01' ALLOW FILTERING",
+      "label": 1,
+      "description": "Bad - Range query with ALLOW FILTERING"
+    },
+    {
+      "query": "SELECT user_id, name FROM users WHERE user_id = 'user123' AND created_at > '2024-01-01'",
+      "label": 0,
+      "description": "Good - Partition key with clustering range"
+    },
+    {
+      "query": "SELECT email FROM users WHERE user_id = '123'",
+      "label": 0,
+      "description": "Good - Simple partition key query with specific column"
+    },
+    {
+      "query": "SELECT * FROM sessions WHERE user_id = 'user456' ORDER BY last_active DESC LIMIT 10",
+      "label": 0,
+      "description": "Good - Partition key with order and limit"
+    },
+    {
+      "query": "SELECT status FROM orders WHERE customer_id IN (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20)",
+      "label": 1,
+      "description": "Bad - Very large IN clause (20 values)"
+    },
+    {
+      "query": "SELECT * FROM users WHERE country = 'US' AND city = 'NYC' ALLOW FILTERING",
+      "label": 1,
+      "description": "Bad - Multiple non-partition fields with ALLOW FILTERING"
+    },
+    {
+      "query": "SELECT product_id, name, price FROM products WHERE product_id = 42",
+      "label": 0,
+      "description": "Good - Specific columns with partition key"
+    },
+    {
+      "query": "SELECT COUNT(*) FROM events WHERE event_type = 'click' ALLOW FILTERING",
+      "label": 1,
+      "description": "Bad - Aggregate with ALLOW FILTERING"
+    },
+    {
+      "query": "SELECT user_id, balance FROM accounts WHERE user_id = 'acc789' AND account_type = 'savings'",
+      "label": 0,
+      "description": "Good - Partition and clustering key"
+    }
+  ]
+}
