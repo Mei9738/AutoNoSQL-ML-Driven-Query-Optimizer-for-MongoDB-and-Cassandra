@@ -1,0 +1,8 @@
+{
+  "collection": "users",
+  "operation": "find",
+  "filter": {
+    "name": {"$regex": "^John"},
+    "age": {"$gt": 25}
+  }
+}

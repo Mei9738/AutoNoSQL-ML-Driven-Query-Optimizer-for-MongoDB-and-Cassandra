@@ -1,0 +1,7 @@
+{
+  "collection": "users",
+  "operation": "find",
+  "filter": {
+    "email": "john@example.com"
+  }
+}
