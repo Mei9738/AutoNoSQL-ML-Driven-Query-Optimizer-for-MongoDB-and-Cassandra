@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoNoSQL - Query Optimizer</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-input: #0d1117;
+            --border-color: #30363d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-yellow: #d29922;
+            --accent-purple: #a371f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: linear-gradient(135deg, #1a1f2e 0%, #0d1117 100%);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Database Toggle */
+        .db-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .db-btn {
+            padding: 12px 35px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .db-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .db-btn.active {
+            background: linear-gradient(135deg, #1f3a5f 0%, #162447 100%);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .db-btn.mongodb.active {
+            background: linear-gradient(135deg, #1a3f2a 0%, #0d2818 100%);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .db-btn.cassandra.active {
+            background: linear-gradient(135deg, #3a2a1f 0%, #28180d 100%);
+            border-color: var(--accent-yellow);
+            color: var(--accent-yellow);
+        }
+
+        /* Query Section */
+        .query-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .query-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .terminal-wrapper {
+            background: var(--bg-input);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            background: #21262d;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red { background: #f85149; }
+        .terminal-dot.yellow { background: #d29922; }
+        .terminal-dot.green { background: #3fb950; }
+
+        .terminal-title {
+            margin-left: 10px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        #query-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+        }
+
+        #query-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        /* Buttons */
+        .button-row {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .analyze-btn {
+            padding: 14px 40px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(88, 166, 255, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .clear-btn {
+            padding: 14px 30px;
+            font-size: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .clear-btn:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
+        }
+
+        .llm-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+            color: var(--text-secondary);
+        }
+
+        .llm-toggle input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Results Section */
+        .results-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .results-title {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+        }
+
+        /* ML Prediction Badge */
+        .ml-badge {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ml-badge.good {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+        }
+
+        .ml-badge.bad {
+            background: rgba(248, 81, 73, 0.15);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+        }
+
+        .ml-badge.unknown {
+            background: rgba(139, 148, 158, 0.15);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Result Cards */
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .result-card {
+            background: var(--bg-input);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+        }
+
+        .result-card h3 {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-card h3 .icon {
+            font-size: 1.2rem;
+        }
+
+        .result-list {
+            list-style: none;
+        }
+
+        .result-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .result-list li:last-child {
+            border-bottom: none;
+        }
+
+        .result-list li.issue {
+            color: var(--accent-red);
+        }
+
+        .result-list li.suggestion {
+            color: var(--accent-green);
+        }
+
+        .no-items {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* LLM Section */
+        .llm-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(163, 113, 247, 0.1) 0%, rgba(88, 166, 255, 0.1) 100%);
+            border-radius: 12px;
+            border: 1px solid var(--accent-purple);
+        }
+
+        .llm-section h3 {
+            color: var(--accent-purple);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .llm-content {
+            color: var(--text-primary);
+            line-height: 1.8;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .error-message {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--accent-red);
+            border-radius: 10px;
+            padding: 15px 20px;
+            color: var(--accent-red);
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>AutoNoSQL</h1>
+            <p>ML-Driven Query Optimizer for MongoDB & Cassandra</p>
+        </header>
+        <div class="db-toggle">
+            <button class="db-btn mongodb active" data-db="mongodb" onclick="selectDB('mongodb')">
+                MongoDB
+            </button>
+            <button class="db-btn cassandra" data-db="cassandra" onclick="selectDB('cassandra')" >
+                Cassandra
+            </button>
+        </div>
+        <section class="query-section">
+            <div class="query-label">
+                <span>Enter your query below</span>
+            </div>
+            
+            <div class="terminal-wrapper">
+                <div class="terminal-header">
+                    <span class="terminal-title" id="terminal-title">mongodb></span>
+                </div>
+                <textarea id="query-input" placeholder='{"collection": "users", "operation": "find", "filter": {"email": "test@example.com"}}'></textarea>
+            </div>
+
+            <div class="button-row">
+                <button class="analyze-btn" onclick="analyzeQuery()">Analyze Query</button>
+                <button class="clear-btn" onclick="clearAll()">Clear</button>
+                <label class="llm-toggle">
+                    <input type="checkbox" id="use-llm" checked>
+                    <span>Use LLM for suggestions</span>
+                </label>
+            </div>
+        </section>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing query...</p>
+        </div>
+
+        <div class="error-message" id="error-message"></div>
+
+        <section class="results-section" id="results-section">
+            <div class="results-header">
+                <h2 class="results-title">Analysis Results</h2>
+                <span class="ml-badge" id="ml-badge">-</span>
+            </div>
+
+            <div class="result-grid">
+                <div class="result-card">
+                    <h3>Issues Found</h3>
+                    <ul class="result-list" id="issues-list">
+                        <li class="no-items">No issues found</li>
+                    </ul>
+                </div>
+
+                <div class="result-card">
+                    <h3>Suggestions</h3>
+                    <ul class="result-list" id="suggestions-list">
+                        <li class="no-items">No suggestions</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="result-card" id="stats-card" style="display: none;">
+                <h3>Execution Stats</h3>
+                <div id="stats-grid"></div>
+            </div>
+
+            <div class="llm-section" id="llm-section" style="display: none;">
+                <h3>AI Optimization Suggestions</h3>
+                <div class="llm-content" id="llm-content"></div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let selectedDB = 'mongodb';
+
+        function selectDB(db) {
+            selectedDB = db;
+            document.querySelectorAll('.db-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.db-btn[data-db="${db}"]`).classList.add('active');
+            document.getElementById('terminal-title').textContent = db + '>';
+            
+            const input = document.getElementById('query-input');
+            if (db === 'mongodb') {
+                input.placeholder = '{"collection": "users", "operation": "find", "filter": {"email": "test@example.com"}}';
+            } else {
+                input.placeholder = 'SELECT * FROM users WHERE user_id = 123';
+            }
+        }
+
+        async function analyzeQuery() {
+            const query = document.getElementById('query-input').value.trim();
+            const useLLM = document.getElementById('use-llm').checked;
+            
+            if (!query) {
+                showError('Please enter a query to analyze');
+                return;
+            }
+
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('results-section').classList.remove('show');
+            document.getElementById('error-message').classList.remove('show');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        db_type: selectedDB,
+                        query: query,
+                        use_llm: useLLM
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    showError(result.error);
+                    return;
+                }
+
+                displayResults(result);
+            } catch (error) {
+                showError('Failed to analyze query: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+
+        function displayResults(result) {
+            const badge = document.getElementById('ml-badge');
+            if (result.ml_prediction === 'GOOD') {
+                badge.textContent = `GOOD (${result.ml_confidence}%)`;
+                badge.className = 'ml-badge good';
+            } else if (result.ml_prediction === 'NEEDS OPTIMIZATION') {
+                badge.textContent = `NEEDS OPTIMIZATION (${result.ml_confidence}%)`;
+                badge.className = 'ml-badge bad';
+            } else {
+                badge.textContent = result.ml_prediction || 'Unknown';
+                badge.className = 'ml-badge unknown';
+            }
+
+            const issuesList = document.getElementById('issues-list');
+            if (result.issues && result.issues.length > 0) {
+                issuesList.innerHTML = result.issues.map(issue => 
+                    `<li class="issue">• ${issue}</li>`
+                ).join('');
+            } else {
+                issuesList.innerHTML = '<li class="no-items">No issues found ✓</li>';
+            }
+
+            const suggestionsList = document.getElementById('suggestions-list');
+            if (result.suggestions && result.suggestions.length > 0) {
+                suggestionsList.innerHTML = result.suggestions.map(suggestion => 
+                    `<li class="suggestion">• ${suggestion}</li>`
+                ).join('');
+            } else {
+                suggestionsList.innerHTML = '<li class="no-items">No suggestions</li>';
+            }
+
+            const statsCard = document.getElementById('stats-card');
+            const statsGrid = document.getElementById('stats-grid');
+            if (result.execution_stats && Object.keys(result.execution_stats).length > 0) {
+                statsGrid.innerHTML = Object.entries(result.execution_stats).map(([key, value]) => `
+                    <div class="stat-item">
+                        <div class="stat-value">${typeof value === 'number' ? value.toLocaleString() : value}</div>
+                        <div class="stat-label">${key.replace(/_/g, ' ')}</div>
+                    </div>
+                `).join('');
+                statsCard.style.display = 'block';
+            } else {
+                statsCard.style.display = 'none';
+            }
+
+            const llmSection = document.getElementById('llm-section');
+            const llmContent = document.getElementById('llm-content');
+            if (result.llm_suggestions) {
+                llmContent.textContent = result.llm_suggestions;
+                llmSection.style.display = 'block';
+            } else {
+                llmSection.style.display = 'none';
+            }
+
+            document.getElementById('results-section').classList.add('show');
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error-message');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            document.getElementById('loading').classList.remove('show');
+        }
+
+        function clearAll() {
+            document.getElementById('query-input').value = '';
+            document.getElementById('results-section').classList.remove('show');
+            document.getElementById('error-message').classList.remove('show');
+        }
+
+        document.getElementById('query-input').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                analyzeQuery();
+            }
+        });
+    </script>
+</body>
+</html>
