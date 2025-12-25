@@ -17,5 +17,8 @@ joblib>=1.3.0
 python-dotenv>=1.0.0
 colorama>=0.4.6
 
+# Web UI
+flask>=2.0.0
+
 # Testing
 pytest>=7.4.0
