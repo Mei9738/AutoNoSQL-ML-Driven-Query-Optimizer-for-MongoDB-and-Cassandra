@@ -134,13 +134,61 @@ class CassandraAnalyzer(BaseQueryAnalyzer):
 
     def get_execution_stats(self, query: str) -> Dict[str, Any]:
         """Get Cassandra query execution statistics"""
-        # Skip query execution - tables may not exist, focus on static analysis
-        # In production, you could execute queries with tracing enabled per-query:
-        # result = self.session.execute(query, trace=True)
-        return {
-            'analysis_type': 'static',
-            'note': 'Query analyzed but not executed'
-        }
+        # Try to execute query with tracing if session exists
+        if not self.session:
+            return {
+                'analysis_type': 'static',
+                'note': 'No database connection - static analysis only'
+            }
+
+        try:
+            # Execute query with tracing enabled to get performance metrics
+            import time
+            start_time = time.time()
+
+            # Execute with trace=True to get detailed execution info
+            future = self.session.execute_async(query, trace=True)
+            result = future.result()
+
+            execution_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+
+            # Get trace information if available
+            trace = future.get_query_trace(max_wait=2.0)
+
+            stats = {
+                'analysis_type': 'live',
+                'execution_time_ms': round(execution_time, 2),
+                'rows_returned': len(list(result)),
+                'coordinator': str(trace.coordinator) if trace else None,
+                'duration_micros': trace.duration.total_seconds() * 1000000 if trace else None
+            }
+
+            # Add trace events if available (useful for debugging performance)
+            if trace and trace.events:
+                stats['trace_events_count'] = len(trace.events)
+                # Get the slowest event
+                slowest = max(trace.events, key=lambda e: e.source_elapsed.total_seconds() if e.source_elapsed else 0)
+                stats['slowest_operation'] = slowest.description if slowest else None
+
+            return stats
+
+        except Exception as e:
+            # If execution fails (table doesn't exist, etc.), fall back to static analysis
+            error_msg = str(e)
+
+            # Check if it's a "table doesn't exist" error
+            if 'unconfigured table' in error_msg.lower() or 'does not exist' in error_msg.lower():
+                return {
+                    'analysis_type': 'static',
+                    'note': 'Table does not exist - static analysis only',
+                    'suggestion': 'Create the table to enable live query execution'
+                }
+
+            return {
+                'analysis_type': 'static',
+                'note': 'Query execution failed - static analysis only',
+                'error': error_msg[:100]  # Truncate long errors
+            }
 
     def check_indexes(self, query: str) -> List[str]:
         """Check if appropriate indexes exist for the query"""
