@@ -3,6 +3,24 @@ AutoNoSQL - Web UI for Query Optimization
 Simple Flask server for browser-based query analysis
 """
 
+# Monkey patch eventlet FIRST before any other imports (for Cassandra driver compatibility)
+import warnings
+import sys
+
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+try:
+    import eventlet
+    # Temporarily suppress stderr to hide RLock warnings (cosmetic only)
+    stderr_backup = sys.stderr
+    sys.stderr = open(os.devnull, 'w') if 'os' in dir() else sys.stderr
+    eventlet.monkey_patch()
+    if stderr_backup != sys.stderr:
+        sys.stderr.close()
+        sys.stderr = stderr_backup
+except ImportError:
+    pass
+
 import json
 import ast
 import os
@@ -36,7 +54,8 @@ def get_config():
         'mongodb_database': os.getenv('MONGODB_DATABASE', 'test'),
         'cassandra_hosts': os.getenv('CASSANDRA_HOSTS', '127.0.0.1').split(','),
         'cassandra_port': int(os.getenv('CASSANDRA_PORT', '9042')),
-        'cassandra_keyspace': os.getenv('CASSANDRA_KEYSPACE', 'system')
+        'cassandra_keyspace': os.getenv('CASSANDRA_KEYSPACE', 'system'),
+        'cassandra_skip_connection': os.getenv('CASSANDRA_SKIP_CONNECTION', 'false').lower() == 'true'
     }
 
 
@@ -168,7 +187,8 @@ def analyze_cassandra(query_str: str, config: dict, use_llm: bool):
     analyzer = CassandraAnalyzer({
         'hosts': config['cassandra_hosts'],
         'port': config['cassandra_port'],
-        'keyspace': config['cassandra_keyspace']
+        'keyspace': config['cassandra_keyspace'],
+        'skip_connection': config.get('cassandra_skip_connection', False)
     })
     
     if not analyzer.connect():
