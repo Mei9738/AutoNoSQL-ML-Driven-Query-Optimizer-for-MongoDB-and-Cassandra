@@ -3,9 +3,26 @@ AutoNoSQL - ML-Driven Query Optimizer for MongoDB and Cassandra
 Main CLI application
 """
 
+# Monkey patch eventlet FIRST before any other imports (for Cassandra driver compatibility)
+import warnings
+import sys
+import os
+
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+try:
+    import eventlet
+    # Temporarily suppress stderr to hide RLock warnings (cosmetic only)
+    stderr_backup = sys.stderr
+    sys.stderr = open(os.devnull, 'w')
+    eventlet.monkey_patch()
+    sys.stderr.close()
+    sys.stderr = stderr_backup
+except ImportError:
+    pass
+
 import argparse
 import json
-import os
 from dotenv import load_dotenv
 from colorama import init, Fore, Style
 
