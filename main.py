@@ -3,20 +3,40 @@ AutoNoSQL - ML-Driven Query Optimizer for MongoDB and Cassandra
 Main CLI application
 """
 
+# Monkey patch eventlet FIRST before any other imports (for Cassandra driver compatibility)
+import warnings
+import sys
+import os
+
+# Suppress eventlet deprecation warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+try:
+    import eventlet
+    # Temporarily suppress stderr to hide RLock warnings (cosmetic only)
+    stderr_backup = sys.stderr
+    sys.stderr = open(os.devnull, 'w')
+    eventlet.monkey_patch()
+    sys.stderr.close()
+    sys.stderr = stderr_backup
+except ImportError:
+    pass
+
 import argparse
 import json
-import os
 from dotenv import load_dotenv
 from colorama import init, Fore, Style
 
 from autonosql.analyzers.mongodb_analyzer import MongoDBAnalyzer
+
 try:
     from autonosql.analyzers.cassandra_analyzer import CassandraAnalyzer
     CASSANDRA_AVAILABLE = True
 except (ImportError, Exception) as e:
     CASSANDRA_AVAILABLE = False
     CASSANDRA_ERROR = str(e)
-    CassandraAnalyzer = None  # Set to None so we can check it later
+    CassandraAnalyzer = None
+
 from autonosql.llm.llm_service import LLMService
 from autonosql.ml.query_classifier import QueryClassifier
 
@@ -44,7 +64,8 @@ def load_config():
         'mongodb_database': os.getenv('MONGODB_DATABASE', 'test'),
         'cassandra_hosts': os.getenv('CASSANDRA_HOSTS', '127.0.0.1').split(','),
         'cassandra_port': int(os.getenv('CASSANDRA_PORT', '9042')),
-        'cassandra_keyspace': os.getenv('CASSANDRA_KEYSPACE', 'system')
+        'cassandra_keyspace': os.getenv('CASSANDRA_KEYSPACE', 'system'),
+        'cassandra_skip_connection': os.getenv('CASSANDRA_SKIP_CONNECTION', 'false').lower() == 'true'
     }
 
 
@@ -168,7 +189,8 @@ def analyze_cassandra_query(query_str: str, config: dict, use_llm: bool = True, 
     analyzer = CassandraAnalyzer({
         'hosts': config['cassandra_hosts'],
         'port': config['cassandra_port'],
-        'keyspace': config['cassandra_keyspace']
+        'keyspace': config['cassandra_keyspace'],
+        'skip_connection': config.get('cassandra_skip_connection', False)
     })
 
     # Connect to Cassandra
