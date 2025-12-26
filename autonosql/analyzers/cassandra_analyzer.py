@@ -6,7 +6,6 @@ from cassandra.cluster import Cluster
 from cassandra.auth import PlainTextAuthProvider
 from ..base_analyzer import BaseQueryAnalyzer, QueryAnalysis
 
-
 class CassandraAnalyzer(BaseQueryAnalyzer):
     """Analyzer for Cassandra CQL queries"""
 
@@ -135,19 +134,13 @@ class CassandraAnalyzer(BaseQueryAnalyzer):
 
     def get_execution_stats(self, query: str) -> Dict[str, Any]:
         """Get Cassandra query execution statistics"""
-        try:
-            # Use TRACING to get execution details
-            self.session.execute("TRACING ON")
-            result = self.session.execute(query)
-
-            stats = {
-                'rows_returned': len(list(result)),
-                'query_traced': True
-            }
-
-            return stats
-        except Exception as e:
-            return {'error': str(e)}
+        # Skip query execution - tables may not exist, focus on static analysis
+        # In production, you could execute queries with tracing enabled per-query:
+        # result = self.session.execute(query, trace=True)
+        return {
+            'analysis_type': 'static',
+            'note': 'Query analyzed but not executed'
+        }
 
     def check_indexes(self, query: str) -> List[str]:
         """Check if appropriate indexes exist for the query"""

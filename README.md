@@ -20,6 +20,8 @@ This approach is efficient: the LLM (which can be slow/expensive) is only used w
 - **Rule-Based Analysis**: Detects missing indexes, inefficient patterns, and optimization opportunities
 - **Easy CLI Interface**: Simple command-line tool for query optimization
 
+> **Note**: Requires `cassandra-driver` 3.29.3+ and `eventlet` for Python 3.12+ compatibility
+
 ## Setup
 
 ### Prerequisites
