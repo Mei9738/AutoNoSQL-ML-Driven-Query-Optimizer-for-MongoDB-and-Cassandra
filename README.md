@@ -137,13 +137,6 @@ AutoNoSQL/
 - **Bad Query Total**: ~3-10s (includes LLM suggestions)
 - **Efficiency Gain**: ~50% reduction in LLM calls
 
-## Documentation
-
-- `README.md` - This file (overview and quick start)
-- `ARCHITECTURE.md` - Technical architecture details
-- `DATASET_GUIDE.md` - Training data guide
-- `TEST_RESULTS.md` - Test results and benchmarks
-
 ## License
 
 MIT
